@@ -2,8 +2,7 @@ version: "3"
 
 networks:
   cluster-net:
-    external:
-      name: ceph
+    name: ceph
 
 volumes:
   etc-ceph:

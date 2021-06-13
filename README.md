@@ -30,22 +30,43 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
    docker-compose up -d mon1
    ```
 
-1. change osd default pool size
+1. configure ceph
+
+   Limit bluestore block size to 100Mi, else will use default `100Gi` for docker volume.
+
+   1. Option 1: Change configuration database
+
+      ```bash
+      docker exec -it ceph-mon ceph
+      ceph> config set mon auth_allow_insecure_global_id_reclaim false
+      ceph> config set global osd_pool_default_size 1
+      ceph> config set global osd_pool_default_min_size 0
+      ceph> config set global bluestore_block_size 100Mi
+      ceph> exit
+      ```
+
+   1. Option 2: Edit `/etc/ceph/ceph.conf`
+
+      ``` bash
+      docker exec -it ceph-mon vi /etc/ceph/ceph.conf
+      ```
+
+      ``` conf
+      osd pool default size = 1
+      osd pool default min size = 0
+      max open files = 655350
+      bluestore_block_size = 100Mi
+      ```
+
+      Restart monitor.
+
+      ```sh
+      docker-compose restart mon1
+      ```
+
+1. start manager
 
    ``` bash
-   docker exec -it ceph-mon vi /etc/ceph/ceph.conf
-   ```
-
-   ``` conf
-   osd pool default size = 1
-   osd pool default min size = 1
-   max open files = 655350
-   ```
-
-1. restart monitor and start manager
-
-   ``` bash
-   docker-compose restart mon1
    docker-compose up -d mgr
    ```
 
@@ -56,6 +77,8 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
    docker-compose up -d osd1
    # Verify OSD is running
    docker-compose exec mon1 ceph status
+   # See storage details
+   docker-compose exec mon1 ceph df
    ```
 
 1. up RADOS Gateway
@@ -70,8 +93,8 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
    ``` bash
    docker-compose exec mon1 ceph mgr module enable dashboard
 
-   # Create user with role `administrator`
-   docker-compose exec mon1 ceph dashboard ac-user-create <username> -i /run/secrets/dashboard_password administrator
+   # Create user `admin` with role `administrator`
+   docker-compose exec mon1 ceph dashboard ac-user-create admin -i /run/secrets/dashboard_password administrator
 
    # Create SSL
    docker-compose exec mon1 ceph dashboard create-self-signed-cert
@@ -92,9 +115,6 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
 
    ``` bash
    docker-compose exec mon1 ceph mgr services
-
-   # Optional: Configure auth_allow_insecure_global_id_reclaim to remove health warning
-   docker exec -it ceph-mon ceph config set mon auth_allow_insecure_global_id_reclaim false
    ```
 
 1. create rados gateway user
@@ -138,3 +158,7 @@ https://github.com/VasiliyLiao/ceph-docker-compose
 https://docs.ceph.com/en/nautilus/mgr/dashboard/
 
 https://www.fatalerrors.org/a/using-docker-to-build-ceph-cluster-nautilus-version.html
+
+https://github.com/ceph/ceph/blob/master/src/sample.ceph.conf
+
+https://github.com/ceph/ceph-container/blob/master/src/daemon/demo.sh
