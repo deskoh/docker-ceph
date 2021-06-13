@@ -1,0 +1,112 @@
+version: "3"
+
+networks:
+  cluster-net:
+    external:
+      name: ceph
+
+volumes:
+  etc-ceph:
+  var-lib-ceph:
+  osd1:
+
+secrets:
+  dashboard_password:
+    file: ./secrets/dashboard_password
+  rgw_access_key:
+    file: ./secrets/rgw_access_key
+  rgw_secret_key:
+    file: ./secrets/rgw_secret_key
+
+services:
+
+  mon1:
+    image: ceph/daemon:${CEPH_CONTAINER_VERSION}
+    container_name: ceph-mon
+    command: "mon"
+    environment:
+      NETWORK_AUTO_DETECT: 1
+      # MON_IP: ${MON1_IP:-172.18.0.2}
+      # CEPH_PUBLIC_NETWORK: ${MON1_CEPH_PUBLIC_NETWORK:-172.18.0.0/16}
+      LANG: ${LANG}
+      TZ: ${TZ}
+    volumes:
+      - etc-ceph:/etc/ceph
+      - var-lib-ceph:/var/lib/ceph/
+    secrets:
+      - dashboard_password
+      - rgw_access_key
+      - rgw_secret_key
+    networks:
+      - cluster-net
+
+  mgr:
+    image: ceph/daemon:${CEPH_CONTAINER_VERSION}
+    container_name: ceph-mgr
+    command: "mgr"
+    environment:
+      LANG: ${LANG}
+      TZ: ${TZ}
+    volumes:
+      - etc-ceph:/etc/ceph
+      - var-lib-ceph:/var/lib/ceph/
+    depends_on:
+      - mon1
+    networks:
+      - cluster-net
+    ports:
+      - "8443:8443"
+
+  osd1:
+    pid: host
+    image: ceph/daemon:${CEPH_CONTAINER_VERSION}
+    container_name: ceph-osd
+    command: "osd_directory"
+    environment:
+      LANG: ${LANG}
+      TZ: ${TZ}
+      # OSD_TYPE: directory
+    volumes:
+      - etc-ceph:/etc/ceph
+      - var-lib-ceph:/var/lib/ceph/
+      # Specify the osd data space separately, if not specified separately, the default is in the /var/lib/ceph directory
+      - osd1:/var/lib/ceph/osd
+    depends_on:
+      - mon1
+    networks:
+      - cluster-net
+
+  rgw1:
+    image: ceph/daemon:${CEPH_CONTAINER_VERSION}
+    container_name: ceph-rgw
+    command: "rgw"
+    environment:
+      LANG: ${LANG}
+      TZ: ${TZ}
+    volumes:
+      - etc-ceph:/etc/ceph
+      - var-lib-ceph:/var/lib/ceph/
+    depends_on:
+      - osd1
+    networks:
+      - cluster-net
+    ports:
+      - "7480:7480"
+
+  # mds1:
+  #   image: ceph/daemon:${CEPH_CONTAINER_VERSION}
+  #   command: "mds"
+  #   hostname: "ceph-mds1-host"
+  #   environment:
+  #     CEPHFS_CREATE: 1
+  #     LANG: ${LANG}
+  #     TZ: ${TZ}
+  #   volumes:
+  #     - etc-ceph:/etc/ceph
+  #     - var-lib-ceph:/var/lib/ceph/
+  #   depends_on:
+  #     - osd1
+  #     - osd2
+  #     - osd3
+  #   networks:
+  #     - cluster-net

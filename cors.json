@@ -1,0 +1,11 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["*"],
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["HEAD", "GET", "POST", "PUT", "DELETE"],
+      "MaxAgeSeconds": 3000,
+      "ExposeHeaders": ["ETag", "x-amz-request-id"]
+    }
+  ]
+}
