@@ -65,7 +65,7 @@ services:
     environment:
       LANG: ${LANG}
       TZ: ${TZ}
-      # OSD_TYPE: directory
+      OSD_TYPE: directory
     volumes:
       - etc-ceph:/etc/ceph
       - var-lib-ceph:/var/lib/ceph/

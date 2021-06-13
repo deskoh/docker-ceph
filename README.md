@@ -1,10 +1,10 @@
 # Ceph Object Storage
 
-Deploy ceph version 14.2.21 & Container version v4.0.21-stable-4.0-nautilus-centos-7
+Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-8
 
 ## Setup
 
-[more info](https://docs.ceph.com/en/nautilus/mgr/dashboard/)
+[more info](https://docs.ceph.com/en/pacific/mgr/dashboard/)
 
 ## Quick Start
 
@@ -54,7 +54,9 @@ Deploy ceph version 14.2.21 & Container version v4.0.21-stable-4.0-nautilus-cent
    ``` bash
    docker-compose exec mon1 ceph auth get client.bootstrap-osd -o /var/lib/ceph/bootstrap-osd/ceph.keyring
    docker-compose up -d osd1
-
+   # Verify OSD is running
+   docker-compose exec mon1 ceph status
+   ```
 
 1. up RADOS Gateway
 
@@ -130,6 +132,8 @@ aws --profile=ceph --endpoint=http://localhost:7480 s3 mb s3://test
 ```
 
 ## Reference
+
+https://github.com/VasiliyLiao/ceph-docker-compose
 
 https://docs.ceph.com/en/nautilus/mgr/dashboard/
 
