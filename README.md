@@ -43,6 +43,9 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
       ceph> config set global osd_pool_default_min_size 0
       ceph> config set global bluestore_block_size 100Mi
       ceph> exit
+
+      # Review configuration database
+      docker exec -it ceph-mon ceph config dump
       ```
 
    1. Option 2: Edit `/etc/ceph/ceph.conf`
@@ -51,11 +54,16 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
       docker exec -it ceph-mon vi /etc/ceph/ceph.conf
       ```
 
-      ``` conf
-      osd pool default size = 1
-      osd pool default min size = 0
-      max open files = 655350
+      ``` ini
+      [global]
+      # Add following under global
+      osd_pool_default_size = 1
+      osd_pool_default_min_size = 0
+      max_open_files = 655350
       bluestore_block_size = 100Mi
+
+      [mon]
+      auth_allow_insecure_global_id_reclaim = false
       ```
 
       Restart monitor.
@@ -86,11 +94,18 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
    ``` bash
    docker-compose exec mon1 ceph auth get client.bootstrap-rgw -o /var/lib/ceph/bootstrap-rgw/ceph.keyring
    docker-compose up -d rgw1
+
+   # Supress pool has no-redundancy health check warning
+   docker-compose exec mon1 ceph health mute POOL_NO_REDUNDANCY
    ```
 
 1. enable `mgr` dashboard module
 
    ``` bash
+   # Configure dashboard
+   docker-compose exec mon1 ceph config set mgr mgr/dashboard/server_addr 0.0.0.0
+   docker-compose exec mon1 ceph config set mgr mgr/dashboard/server_port 8443
+
    docker-compose exec mon1 ceph mgr module enable dashboard
 
    # Create user `admin` with role `administrator`
@@ -100,13 +115,6 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
    docker-compose exec mon1 ceph dashboard create-self-signed-cert
    # Optional: Disable SSL
    # docker-compose exec mon1 ceph config set mgr mgr/dashboard/ssl false
-
-   docker-compose exec mon1 ceph config set mgr mgr/dashboard/server_addr 0.0.0.0
-   docker-compose exec mon1 ceph config set mgr mgr/dashboard/server_port 8443
-
-   # Restart dashboard module
-   docker-compose exec mon1 ceph mgr module disable dashboard
-   docker-compose exec mon1 ceph mgr module enable dashboard
 
    # Visit dashboard https://localhost:8443
    ```
@@ -130,6 +138,8 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
    ``` bash
    docker-compose exec mon1 ceph dashboard set-rgw-api-access-key -i /run/secrets/rgw_access_key
    docker-compose exec mon1 ceph dashboard  set-rgw-api-secret-key -i /run/secrets/rgw_secret_key
+
+   # Dashboard -> Object Gateway -> Buckets can now be accessed.
    ```
 
 1. list buckets
@@ -145,10 +155,14 @@ docker-compose exec mon1 radosgw-admin user create --uid="deskoh" --display-name
 # Show user info (including access key and secret)
 docker-compose exec mon1 radosgw-admin user info --uid=deskoh
 
+# Configure profile with access key and secret above
 aws configure --profile=ceph
+
+# Create bucket
+aws --profile=ceph --endpoint=http://localhost:7480 s3 mb s3://test
+# Update CORS
 aws --profile=ceph --endpoint=http://localhost:7480 s3api put-bucket-cors --bucket test --cors-configuration file://cors.json
 aws --profile=ceph --endpoint=http://localhost:7480 s3 ls
-aws --profile=ceph --endpoint=http://localhost:7480 s3 mb s3://test
 ```
 
 ## Reference
