@@ -109,3 +109,21 @@ services:
   #     - osd3
   #   networks:
   #     - cluster-net
+
+  minio-gateway:
+    image: minio/minio:RELEASE.2021-06-17T00-10-46Z
+    container_name: minio-gateway
+    command: minio gateway s3 http://rgw1:7480
+    secrets:
+      - rgw_access_key
+      - rgw_secret_key
+    environment:
+      TZ: ${TZ}
+      MINIO_ROOT_USER_FILE: /run/secrets/rgw_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/rgw_secret_key
+    depends_on:
+      - rgw1
+    networks:
+      - cluster-net
+    ports:
+      - "9000:9000"

@@ -99,7 +99,7 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
    docker-compose exec mon1 ceph health mute POOL_NO_REDUNDANCY
    ```
 
-1. enable `mgr` dashboard module
+1. optional (for dashboard): enable `mgr` dashboard module
 
    ``` bash
    # Configure dashboard
@@ -125,7 +125,7 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
    docker-compose exec mon1 ceph mgr services
    ```
 
-1. create rados gateway user
+1. optional: create rados gateway user
 
    ``` bash
    docker-compose exec mon1 radosgw-admin user create --uid=rgw --display-name="RGW User" --system
@@ -133,13 +133,20 @@ Deploy ceph version 16.2.4 & Container version v6.0.3-stable-6.0-pacific-centos-
    # Update ./secrets/{access_key, secret_key} with generated access key and secret
    ```
 
-1. bind rados gatway user to dashboard
+1. optional (for dashboard): bind rados gatway user to dashboard
 
    ``` bash
    docker-compose exec mon1 ceph dashboard set-rgw-api-access-key -i /run/secrets/rgw_access_key
    docker-compose exec mon1 ceph dashboard  set-rgw-api-secret-key -i /run/secrets/rgw_secret_key
 
    # Dashboard -> Object Gateway -> Buckets can now be accessed.
+   ```
+
+1. optional: start MinIO Gateway to manage buckets and buckets
+
+   ```bash
+   docker-compose up -d minio-gateway
+   # Access console at http://localhost:9000
    ```
 
 1. list buckets
@@ -176,3 +183,5 @@ https://www.fatalerrors.org/a/using-docker-to-build-ceph-cluster-nautilus-versio
 https://github.com/ceph/ceph/blob/master/src/sample.ceph.conf
 
 https://github.com/ceph/ceph-container/blob/master/src/daemon/demo.sh
+
+https://docs.min.io/docs/minio-gateway-for-s3.html
